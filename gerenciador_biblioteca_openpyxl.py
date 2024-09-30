@@ -149,6 +149,28 @@ def aplicar_formatacao_coluna(planilha, coluna, formatacao):
         celula = planilha.cell(row=linha, column=coluna)
         celula.number_format = formatacao
 
+def aplicar_formatacao_linha(planilha, linha, formatacao):
+    """
+    Aplica uma formatação numérica a todas as células de uma linha especificada.
+
+    Args:
+        planilha (Worksheet): A planilha onde a formatação será aplicada.
+        linha (int): O número da linha onde a formatação será aplicada.
+        formatacao (str): A formatação numérica a ser aplicada (ex: '0.00%', '#,##0.00').
+
+    Example:
+        ### Aplicando formatação à linha 2
+        ```wb = openpyxl.load_workbook('planilhas.xlsx')
+        ws = wb.active
+        aplicar_formatacao_linha(ws, linha=2, formatacao='0.00%')
+        wb.save('planilhas_formatadas.xlsx')
+    """
+    ultima_coluna = planilha.max_column
+    for coluna in range(1, ultima_coluna + 1):
+        celula = planilha.cell(row=linha, column=coluna)
+        celula.number_format = formatacao
+
+
 def remover_coluna(planilha, coluna):
     """
     Remove uma coluna especificada da planilha.
