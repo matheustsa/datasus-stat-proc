@@ -80,8 +80,6 @@ def buscar_celula_por_texto(planilha, texto):
                 return cell
     return None
 
-from openpyxl import Workbook
-
 def adicionar_celula(planilha, linha, coluna, valor=None, formatacao=None):
     """
     Adiciona uma célula a uma planilha do Excel.
@@ -108,3 +106,79 @@ def adicionar_celula(planilha, linha, coluna, valor=None, formatacao=None):
         celula.number_format = formatacao
     return celula
 
+def formata_celula(planilha, linha, coluna, formatacao):
+    celula = planilha.cell(row=linha, column=coluna)
+    celula.number_format = formatacao
+    return celula
+
+def copiar_planilha_com_formatacao(planilha_origem, nova_planilha):
+    """
+    Copia células e suas formatações de uma planilha para outra.
+    """
+    for row in planilha_origem.iter_rows():
+        for cell in row:
+            nova_celula = nova_planilha.cell(row=cell.row, column=cell.column, value=cell.value)
+            
+            # Copiando a formatação da célula
+            if cell.has_style:
+                # nova_celula.font = cell.font
+                # nova_celula.border = cell.border
+                # nova_celula.fill = cell.fill
+                nova_celula.number_format = cell.number_format
+                # nova_celula.protection = cell.protection
+                nova_celula.alignment = cell.alignment
+
+def aplicar_formatacao_coluna(planilha, coluna, formatacao):
+    """
+    Aplica uma formatação numérica a todas as células de uma coluna especificada.
+
+    Args:
+        planilha (Worksheet): A planilha onde a formatação será aplicada.
+        coluna (int): O número da coluna onde a formatação será aplicada.
+        formatacao (str): A formatação numérica a ser aplicada (ex: '0.00%', '#,##0.00').
+
+    Example:
+        ### Aplicando formatação à coluna 3
+        ```wb = openpyxl.load_workbook('planilhas.xlsx')
+        ws = wb.active
+        aplicar_formatacao_coluna(ws, coluna=3, formatacao='0.00%')
+        wb.save('planilhas_formatadas.xlsx')
+    """
+    ultima_linha = planilha.max_row
+    for linha in range(1, ultima_linha + 1):
+        celula = planilha.cell(row=linha, column=coluna)
+        celula.number_format = formatacao
+
+def remover_coluna(planilha, coluna):
+    """
+    Remove uma coluna especificada da planilha.
+
+    Args:
+        planilha (Worksheet): A planilha de onde a coluna será removida.
+        coluna (int): O número da coluna a ser removida.
+
+    Example:
+        ### Removendo a coluna 3
+        ```wb = openpyxl.load_workbook('planilhas.xlsx')
+        ws = wb.active
+        remover_coluna(ws, coluna=3)
+        wb.save('planilhas_sem_coluna.xlsx')
+    """
+    planilha.delete_cols(coluna)
+
+def renomear_planilha(planilha, titulo):
+    """
+    Renomeia uma planilha existente com o novo título especificado.
+
+    Args:
+        planilha (Worksheet): A planilha que será renomeada.
+        titulo (str): O novo título a ser atribuído à planilha.
+
+    Example:
+        ### Renomeando uma planilha chamada "Planilha1" para "Resumo"
+        ```wb = openpyxl.load_workbook('planilhas.xlsx')
+        ws = wb['Planilha1']
+        renomear_planilha(ws, 'Resumo')
+        wb.save('planilhas_renomeadas.xlsx')
+    """
+    planilha.title = titulo

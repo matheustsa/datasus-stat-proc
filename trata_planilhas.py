@@ -1,5 +1,6 @@
+from openpyxl import Workbook
 import argparse
-from gerenciador_biblioteca_openpyxl import abrir_arquivo, obter_limites_planilha, buscar_celula_por_texto, adicionar_celula
+from gerenciador_biblioteca_openpyxl import *
 
 class PlanilhaProcessor:
     """
@@ -25,6 +26,13 @@ class PlanilhaProcessor:
             nome_arquivo_entrada (str): Nome do arquivo Excel de entrada.
             nome_arquivo_saida (str): Nome do arquivo Excel de saída.
         """
+
+        self.cabecalho_periodo = 'Período'
+        self.cabecalho_dados_obtidos = 'DADOS_OBTIDOS (%)'
+        self.cabecalho_dados_ausentes = 'DADOS_AUSENTES (%)'
+        self.cabecalho_procent_completa = 'PORCENT_COMPLETA (%)'
+        self.cabecalho_procent_ausente = 'PORCENT_AUSENTE (%)'
+
         self.nome_arquivo_entrada = nome_arquivo_entrada
         self.nome_arquivo_saida = nome_arquivo_saida
         self.lista_planilhas_nao_processadas = []
@@ -56,7 +64,7 @@ class PlanilhaProcessor:
             self.lista_planilhas_nao_processadas.append(planilha.title)
             return
 
-        celula_periodo = buscar_celula_por_texto(planilha, 'Periodo')
+        celula_periodo = buscar_celula_por_texto(planilha, self.cabecalho_periodo)
         if not celula_periodo:
             self.lista_planilhas_nao_processadas.append(planilha.title)
             return
@@ -65,10 +73,16 @@ class PlanilhaProcessor:
         linha_cabecalhos = celula_periodo.row + 1
         inicio_dados_tabela = planilha.cell(row=linha_cabecalhos + 1, column=2)
         fim_dados_tabela = planilha.cell(row=ultima_linha_planilha - 1, column=ultima_coluna_planilha)
+
+        # Verifica se já existe a coluna 'dados faltantes'
+        celula_dados_ausentes = buscar_celula_por_texto(planilha, 'dados faltantes')
+        if celula_dados_ausentes:
+            celula_dados_ausentes.value = self.cabecalho_dados_ausentes
+            celula_dados_ausentes.offset(0,-1).value = self.cabecalho_dados_obtidos
+        else:
+            col_dados_obtidos, col_dados_ausentes = self.adicionar_colunas_dados_obtidos_ausentes(planilha, linha_cabecalhos, ultima_coluna_planilha)
+            self.calcular_porcentagens_dados_tabela(planilha, inicio_dados_tabela, fim_dados_tabela, col_dados_obtidos, col_dados_ausentes)
         
-        col_dados_obtidos, col_dados_ausentes = self.adicionar_colunas_dados_obtidos_ausentes(planilha, linha_cabecalhos, ultima_coluna_planilha)
-        
-        self.calcular_porcentagens_dados_tabela(planilha, inicio_dados_tabela, fim_dados_tabela, col_dados_obtidos, col_dados_ausentes)
         self.calcular_porcentagens_gerais(planilha, inicio_dados_tabela, fim_dados_tabela, ultima_linha_planilha)
 
     def adicionar_colunas_dados_obtidos_ausentes(self, planilha, linha_cabecalhos, ultima_coluna):
@@ -83,8 +97,8 @@ class PlanilhaProcessor:
         Returns:
             tuple: Colunas onde 'DADOS_OBTIDOS' e 'DADOS_AUSENTES' foram inseridos.
         """
-        col_dados_obtidos = adicionar_celula(planilha, linha=linha_cabecalhos, coluna=ultima_coluna + 1, valor='DADOS_OBTIDOS (%)')
-        col_dados_ausentes = adicionar_celula(planilha, linha=linha_cabecalhos, coluna=ultima_coluna + 2, valor='DADOS_AUSENTES (%)')
+        col_dados_obtidos = adicionar_celula(planilha, linha=linha_cabecalhos, coluna=ultima_coluna + 1, valor=self.cabecalho_dados_obtidos)
+        col_dados_ausentes = adicionar_celula(planilha, linha=linha_cabecalhos, coluna=ultima_coluna + 2, valor=self.cabecalho_dados_ausentes)
         return col_dados_obtidos, col_dados_ausentes
 
     def calcular_porcentagens_dados_tabela(self, planilha, inicio_dados_tabela, fim_dados_tabela, col_dados_obtidos, col_dados_ausentes):
@@ -115,11 +129,11 @@ class PlanilhaProcessor:
             ultima_linha_planilha (int): A última linha da planilha.
         """
         adicionar_celula(planilha, linha=ultima_linha_planilha + 1, coluna=1, valor='-------------')
-        adicionar_celula(planilha, linha=ultima_linha_planilha + 2, coluna=1, valor='PORCENT_COMPLETA (%)')
+        adicionar_celula(planilha, linha=ultima_linha_planilha + 2, coluna=1, valor=self.cabecalho_procent_completa)
         intervalo_dados = f'{inicio_dados_tabela.coordinate}:{fim_dados_tabela.coordinate}'
         valor_porcent_completa = adicionar_celula(planilha, linha=ultima_linha_planilha + 2, coluna=2, valor=f'=COUNT({intervalo_dados}) / COUNTA({intervalo_dados})', formatacao='0.00%')
 
-        adicionar_celula(planilha, linha=ultima_linha_planilha + 3, coluna=1, valor='PORCENT_AUSENTE (%)')
+        adicionar_celula(planilha, linha=ultima_linha_planilha + 3, coluna=1, valor=self.cabecalho_procent_ausente)
         adicionar_celula(planilha, linha=ultima_linha_planilha + 3, coluna=2, valor=f'=1-{valor_porcent_completa.column_letter}{valor_porcent_completa.row}', formatacao='0.00%')
 
     def salvar_planilhas_nao_processadas(self):
@@ -143,16 +157,19 @@ class PlanilhaProcessor:
         print('Iniciando o processamento das planilhas...')
         for planilha in self.arquivo_xlsx.worksheets:
             self.processar_planilha(planilha)
-        print('Processamento concluído.')
+
+        print('Salvando planilha gerada...')
         self.arquivo_xlsx.save(self.nome_arquivo_saida)
+        print('Salvando lista de planilhas não processadas...')
         self.salvar_planilhas_nao_processadas()
+        print('Processamento concluído.')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Processar planilhas Excel adicionando porcentagens de dados.')
-    parser.add_argument('arquivo_entrada', help='Nome do arquivo Excel de entrada')
-    parser.add_argument('arquivo_saida', help='Nome do arquivo Excel de saída')
+    parser.add_argument('nome_arquivo_entrada', help='Nome do arquivo Excel de entrada')
+    parser.add_argument('nome_arquivo_saida', help='Nome do arquivo Excel de saída')
     
     args = parser.parse_args()
     
-    processor = PlanilhaProcessor(args.arquivo_entrada, args.arquivo_saida)
+    processor = PlanilhaProcessor(args.nome_arquivo_entrada, args.nome_arquivo_saida)
     processor.processar()
