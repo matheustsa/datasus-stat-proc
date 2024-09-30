@@ -1,11 +1,3 @@
 Planilhas não processadas:
-Página6
-Pacto de Atenção Básica - 2001 
-Cadernos de Informação de Saúde
-Página61
-Página62
-Página64
-Página65
-Página66
-Página67
-Conjunto Mínimo de Dados (CMD)
+Planilha5
+Planilha6

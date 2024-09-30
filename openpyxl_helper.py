@@ -171,13 +171,13 @@ def aplicar_formatacao_linha(planilha, linha, formatacao):
         celula.number_format = formatacao
 
 
-def remover_coluna(planilha, coluna):
+def remover_coluna(planilha, indice_coluna):
     """
-    Remove uma coluna especificada da planilha.
+    Remove uma coluna inteira da planilha.
 
     Args:
         planilha (Worksheet): A planilha de onde a coluna será removida.
-        coluna (int): O número da coluna a ser removida.
+        indice_coluna (int): O índice da coluna a ser removida (1 para a primeira coluna, 2 para a segunda, etc).
 
     Example:
         ### Removendo a coluna 3
@@ -186,7 +186,7 @@ def remover_coluna(planilha, coluna):
         remover_coluna(ws, coluna=3)
         wb.save('planilhas_sem_coluna.xlsx')
     """
-    planilha.delete_cols(coluna)
+    planilha.delete_cols(indice_coluna)
 
 def renomear_planilha(planilha, titulo):
     """
